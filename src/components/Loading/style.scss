@@ -1,0 +1,61 @@
+$base: #263238;
+$lite: #FFF;
+$brand: #FF3D00;
+$size: 48px;
+
+.loading {
+    display: inline-flex;
+    &-spinner {
+        font-size: 0;
+        line-height: 0;
+        border-style: solid;
+        border-width: var(--loading-spinner-width, var(--border-width-300, 4px));
+        border-color: var(--loading-spinner-background, var(--background-color-100, #ffffff));
+        border-bottom-color: var(--loading-spinner-foreground, var(--accent-color-400, #1C6BBA));
+        border-radius: 50%;
+        display: inline-block;
+        animation: rotation 1s linear infinite;
+    }
+    &[data-size="S"] {
+        .loading-spinner {
+            width: 36px;
+            height: 36px;
+        }
+    }
+    &[data-size="M"] {
+        .loading-spinner {
+            width: 44px;
+            height: 44px;
+        }
+    }
+    &[data-size="L"] {
+        .loading-spinner {
+            width: 52px;
+            height: 52px;
+        }
+    }
+    &[data-size="XL"] {
+        .loading-spinner {
+            width: 64px;
+            height: 64px;
+        }
+    }
+    &[data-size="XXL"] {
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+        }
+    }
+}
+
+/* keyFrames */
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg)
+    }
+
+    100% {
+        transform: rotate(360deg)
+    }
+}

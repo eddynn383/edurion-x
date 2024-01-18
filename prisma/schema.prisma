@@ -1,0 +1,296 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+    // shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // Only needed when using a cloud provider that doesn't support the creation of new databases, like Heroku. Learn more: https://pris.ly/migrate-shadow
+}
+
+model Account {
+    id                String  @id @default(auto()) @map("_id") @db.ObjectId
+    userId            String  @db.ObjectId
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String? @db.String
+    access_token      String? @db.String
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String? @db.String
+    session_state     String?
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+    @@map("Accounts")
+}
+
+model Session {
+    id           String   @id @default(auto()) @map("_id") @db.ObjectId
+    sessionToken String   @unique
+    userId       String   @db.ObjectId
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@map("Sessions")
+}
+
+model User {
+    id                String           @id @default(auto()) @map("_id") @db.ObjectId
+    name              String?
+    email             String?          @unique
+    emailVerified     DateTime?
+    password          String?
+    image             String?
+    imageLarge        String?
+    role              String           @default("user")
+    accounts          Account[]
+    sessions          Session[]
+    createdAt         DateTime         @default(now())
+    updatedAt         DateTime         @updatedAt
+    Profile           Profile?
+    pageCreated       Page[]           @relation("CreatedById")
+    pageUpdated       Page[]           @relation("UpdatedById")
+    catalogCreated    Catalog[]        @relation("CreatedById")
+    catalogUpdated    Catalog[]        @relation("UpdatedById")
+    courseCreated     Course[]         @relation("CreatedById")
+    courseUpdated     Course[]         @relation("UpdatedById")
+    coursesInstructed Course[]         @relation("Instructor")
+    coursesEnrolled   Enrollment[]
+    userPreferences   UserPreferences?
+    // dashboardId            String
+
+    @@unique([email, image])
+    @@map("Users")
+}
+
+model UserPreferences {
+    id             String    @id @default(auto()) @map("_id") @db.ObjectId
+    paymentMethods String?
+    user           User      @relation(fields: [userId], references: [id])
+    userId         String    @unique @db.ObjectId
+    themeMode      ThemeType @default(light)
+    theme          Theme?
+}
+
+model Theme {
+    id                String          @id @default(auto()) @map("_id") @db.ObjectId
+    defaultStyle      Json
+    customStyleId     String?         @db.ObjectId
+    customStyles      CustomStyles[]
+    userPreferencesId String          @unique @db.ObjectId
+    userPreferences   UserPreferences @relation(fields: [userPreferencesId], references: [id])
+}
+
+model CustomStyles {
+    id          String   @id @default(auto()) @map("_id") @db.ObjectId
+    lightStyles String[]
+    darkStyles  String[]
+    themeId     String   @unique @db.ObjectId
+    theme       Theme    @relation(fields: [themeId], references: [id])
+}
+
+model Profile {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    user      User     @relation(fields: [userEmail], references: [email])
+    userEmail String   @unique
+    avatar    String?  @default("")
+    firstname String?
+    lastname  String?
+    bio       String?
+    birthdate String?
+    country   String?
+    city      String?
+    address   String?
+    company   String?
+    title     String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([userEmail, avatar])
+    @@map("Profiles")
+}
+
+// model NavigationItem {
+//     id           String           @id @default(auto()) @map("_id") @db.ObjectId
+//     title        String
+//     url          String
+//     icon         String?
+//     createdBy    User?            @relation(name: "CreatedById", fields: [createdById], references: [id])
+//     createdById  String           @db.ObjectId
+//     createdAt    DateTime         @default(now())
+//     updatedBy    User?            @relation(name: "UpdatedById", fields: [updatedById], references: [id])
+//     updatedById  String?          @db.ObjectId
+//     updatedAt    DateTime?        @updatedAt
+//     isPublish    Boolean          @default(false)
+//     allowedUsers String[]
+//     allowedRoles Roles[]          @default([LEARNER, MANAGER, ADMIN])
+//     parentId     String?          @db.ObjectId
+//     parent       NavigationItem?  @relation("NavigationItemsToParent", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+//     childItems   NavigationItem[] @relation("NavigationItemsToParent")
+
+//     @@map("NavigationItems")
+// }
+
+model VerificationToken {
+    id         String   @id @default(auto()) @map("_id") @db.ObjectId
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+    @@map("verificationtokens")
+}
+
+model Course {
+    id           String       @id @default(auto()) @map("_id") @db.ObjectId
+    title        String
+    description  String
+    image        String
+    category     String
+    priceId      String       @db.ObjectId
+    price        Price        @relation(fields: [priceId], references: [id])
+    ratingId     String       @db.ObjectId
+    rating       Rating       @relation(fields: [ratingId], references: [id])
+    level        String
+    status       CourseStatus @default(DRAFTED)
+    startDate    DateTime
+    endDate      DateTime?
+    students     Enrollment[]
+    instructor   User?        @relation("Instructor", fields: [instructorId], references: [id])
+    instructorId String       @db.ObjectId
+    createdBy    User?        @relation(name: "CreatedById", fields: [createdById], references: [id])
+    createdById  String       @db.ObjectId
+    createdAt    DateTime     @default(now())
+    updatedBy    User?        @relation(name: "UpdatedById", fields: [updatedById], references: [id])
+    updatedById  String?      @db.ObjectId
+    updatedAt    DateTime     @updatedAt
+    // catalogsId   String[]     @db.ObjectId
+    // catalogs     Catalog[]    @relation(fields: [catalogsId], references: [id])
+    content      Content[]
+
+    @@map("Courses")
+}
+
+model Content {
+    id        String      @id @default(auto()) @map("_id") @db.ObjectId
+    title     String
+    type      ContentType
+    content   String
+    courseId  String      @db.ObjectId
+    course    Course      @relation(fields: [courseId], references: [id])
+    createdAt DateTime    @default(now())
+    updatedAt DateTime    @updatedAt
+
+    @@map("Contents")
+}
+
+model Enrollment {
+    id        String           @id @default(auto()) @map("_id") @db.ObjectId
+    userId    String           @db.ObjectId
+    courseId  String           @db.ObjectId
+    user      User             @relation(fields: [userId], references: [id])
+    course    Course           @relation(fields: [courseId], references: [id])
+    grade     Int?
+    status    EnrollmentStatus
+    createdAt DateTime         @default(now())
+    updatedAt DateTime         @updatedAt
+
+    @@unique([userId, courseId])
+    @@map("Enrollments")
+}
+
+model Price {
+    id       String   @id @default(auto()) @map("_id") @db.ObjectId
+    value    Int
+    currency String
+    discount Float?
+    course   Course[]
+}
+
+model Rating {
+    id      String   @id @default(auto()) @map("_id") @db.ObjectId
+    value   Float    @default(0)
+    reviews Int      @default(0)
+    course  Course[]
+}
+
+model Page {
+    id           String      @id @default(auto()) @map("_id") @db.ObjectId
+    title        String
+    url          String      @unique
+    icon         String?     @default("")
+    isPublish    Boolean     @default(false)
+    allowedUsers String[]
+    allowedRole  String[]    @default(["user"])
+    children     PageChild[]
+    createdBy    User?       @relation(name: "CreatedById", fields: [createdById], references: [id])
+    createdById  String      @db.ObjectId
+    createdAt    DateTime    @default(now())
+    updatedBy    User?       @relation(name: "UpdatedById", fields: [updatedById], references: [id])
+    updatedById  String?     @db.ObjectId
+    updatedAt    DateTime?   @updatedAt
+    position     Int         @unique
+
+    @@map("Pages")
+}
+
+model PageChild {
+    id           String   @id @default(auto()) @map("_id") @db.ObjectId
+    title        String
+    url          String   @unique
+    icon         String?  @default("")
+    isPublish    Boolean  @default(false)
+    allowedUsers String[]
+    allowedRole  String[] @default(["user"])
+    pageId       String?  @db.ObjectId
+    page         Page?    @relation(fields: [pageId], references: [id])
+    position     Int      @unique
+}
+
+model Catalog {
+    id          String   @id @default(auto()) @map("_id") @db.ObjectId
+    title       String
+    description String   @default("")
+    // coursesId   String[] @db.ObjectId @default([""])
+    // courses     Course[] @relation(fields: [coursesId], references: [id])
+    createdBy   User?    @relation(name: "CreatedById", fields: [createdById], references: [id])
+    createdById String   @db.ObjectId
+    createdAt   DateTime @default(now())
+    updatedBy   User?    @relation(name: "UpdatedById", fields: [updatedById], references: [id])
+    updatedById String?  @db.ObjectId
+    updatedAt   DateTime @updatedAt
+
+    @@map("Catalogs")
+}
+
+model Role {
+    id    String @id @default(auto()) @map("_id") @db.ObjectId
+    value String
+}
+
+enum ContentType {
+    TEXT
+    VIDEO
+    AUDIO
+    PDF
+}
+
+enum EnrollmentStatus {
+    ENROLLED
+    COMPLETED
+    DROPPED
+}
+
+enum CourseStatus {
+    DRAFTED
+    PUBLISHED
+}
+
+enum ThemeType {
+    light
+    dark
+}
